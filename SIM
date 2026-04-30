@@ -53,6 +53,88 @@ for s=1:50
     end
 end
 % disp(s)
+----------------------------------------------------------------------------------
+clc;
+clear;
+
+M = 1000; % Large number
+
+% Max Z = 3x1 + 2x2 - M*a1 - M*a2
+% Variables: x1 x2 s1 a1 a2
+
+C = [3 2 0 -M -M];
+
+A = [1 1 -1 1 0;
+     2 1  0 0 1];
+
+b = [4; 5];
+
+m = size(A,1);
+n = size(A,2);
+
+Y = [A b];
+
+% Initial basic variables → artificial variables
+bv_index = [4 5];
+
+for s = 1:50
+    Xb = Y(:, end);
+    Cb = C(bv_index);
+    z = Cb * Xb;
+
+    % Zj - Cj
+    ZjCj = Cb * Y(:,1:n) - C;
+
+    Table = [ZjCj z; Y];
+    disp('Iteration Table:');
+    disp(Table)
+
+    % Check optimality
+    if all(ZjCj >= 0)
+        disp('Optimal Solution:');
+        
+        sol = zeros(1,n);
+        sol(bv_index) = Xb;
+        
+        disp(sol);
+        disp('Optimal Value:');
+        disp(z);
+        break;
+    else
+        [~, Ev] = min(ZjCj);
+
+        if all(Y(:,Ev) <= 0)
+            disp('Unbounded');
+            break;
+        else
+            for j = 1:m
+                if Y(j,Ev) > 0
+                    ratio(j) = Xb(j) / Y(j,Ev);
+                else
+                    ratio(j) = inf;
+                end
+            end
+        end
+
+        [~, Lv] = min(ratio);
+        bv_index(Lv) = Ev;
+    end
+
+    pivot = Y(Lv, Ev);
+
+    % Normalize pivot row
+    Y(Lv,:) = Y(Lv,:) / pivot;
+
+    % Row operations
+    for i = 1:m
+        if i ~= Lv
+            Y(i,:) = Y(i,:) - Y(i,Ev) * Y(Lv,:);
+        end
+    end
+end
+
+
+
 
 ----------------------------------------------------------------------------------------
 % CODE FOR STEEPEST DESCENT METHOD
