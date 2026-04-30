@@ -1,0 +1,146 @@
+simplex method
+% Simplex Method
+clc
+clear all
+%% MAX
+c=[1 2 3 0 0];
+b=[20;30];
+A= [ 1 2 0 1 0; 3 0 4 0 1];
+m = size(A,1);
+n = size(A,2);
+%%
+bv_index= n-m+1:1:n
+Y = [A b]
+
+for s=1:50
+    
+    cb=c(bv_index);
+    Xb=Y(:,end)% in place of end n+1 
+    z=cb*Xb; % Xb is clumn vector and cb is row matrix
+    zjcj=cb*Y(:,1:n)-c %cb*Y-c  c = [c 0];
+ Table = [zjcj z;Y]
+    
+    if zjcj>=0
+        disp('optimal sol achieved');
+        Xb
+        basic_variables = bv_index
+        fprintf("Optimal objective function value = %f",z);
+        break
+    else
+        [a,EV]= min(zjcj) % a= -3 and ev = index
+        if Y(:,EV)<0
+            disp("Unbounded solution")
+            break
+        else
+            for j=1:m
+                if Y(j,EV)>0
+                    ratio(j)=Xb(j)/Y(j,EV)
+                else
+                    ratio(j)= inf
+                end
+            end
+        end
+        [k,LV]=min(ratio) 
+        bv_index(LV)=EV
+        
+    end
+    pivot = Y(LV,EV);
+    Y(LV,:)=Y(LV,:)./pivot;
+    for i = 1:m
+        if i~=LV
+            Y(i,:)=Y(i,:)-Y(i,EV)*Y(LV,:); % row operation
+        end
+    end
+end
+% disp(s)
+
+----------------------------------------------------------------------------------------
+% CODE FOR STEEPEST DESCENT METHOD
+% QUESTION IS - PERFORM 4 ITERATIONS OF STEEPEST DESCENT ALGORITHM TO MINIMIZE
+% f(x1,x2)=x1-x2+2x1^2+2x1x2+x2^2
+% Starting from the point X1=[1,1]
+format short % Display output upto 4 digits
+clear all    % clear all the stored values
+clc          % Clear the screen
+
+%% Phase 1- Define objective function
+syms x1 x2
+f1 = x1-x2+2*x1^2+2*x1*x2+x2^2;
+fx = inline(f1); % to convert f1 into a function of x1 and x2.
+fobj = @(x) fx(x(1),x(2)); %convert the function in one variable
+
+%% Phase 2- Compute gradient of f
+grad = gradient(f1);
+G = inline(grad); % to convert grad into a function of x1 and x2.
+gradx = @(x) G(x(1),x(2)); %convert the function in one variable
+
+%% Phase 3- Compute Hessian Matrix
+H1 = hessian(f1);
+Hx = inline(H1); % to convert H1 into a function
+
+%% Phase 4- Iterations
+x0 = [1 1]; % give initial value of x1 x2
+maxiter = 4; % maximum number of iteration
+tol = 10^(-3); % maximum tolerance or error in our answer
+iter = 0; % iteration counter / initial counter
+X = []; % initial vector array
+
+while norm(gradx(x0))>tol && iter<maxiter
+    X = [X;x0]; % save all vectors
+    S = -gradx(x0); % compute gradient at X
+    H = Hx(x0); % compute Hessian at X
+    lambda = S'*S ./ (S'*H*S); % compute lambda
+    Xnew = x0+lambda.*S'; % update X
+    x0 = Xnew; % save new X
+    iter = iter+1; % update iteration number
+end
+
+%% Phase 5- Print the solution
+fprintf('Optimal Solution X=[%f, %f]\n',x0(1),x0(2))
+fprintf('Optimal Value f(x) = %f \n',fobj(x0))
+------------------------------------------------------------------------------
+%%%%%  Least Cost Method  %%%%%
+
+clc;
+clear all;
+cost = [11 13 17 14; 16 18 14 10 ; 21 24 13 10];
+supply = [10 5 9];
+demand = [8 7 15 4];
+[m,n] = size(cost);
+s = sum(supply);
+d = sum(demand);
+if (s==d)
+    disp('Balanced');
+elseif(s<d)
+    cost(end+1,:) = zeros(1,n);
+    supply(end+1) = d-s;
+else
+    cost(:,end+1) = zeros(m,1);
+    demand(end+1) = s-d;
+end
+disp('Balanced TP');
+Table = [cost supply'; demand sum(supply)];
+disp(Table);
+
+%% Allocation %%
+
+[m,n] = size(cost);
+X = zeros(m,n);
+Icost = cost;
+
+while(any(supply)~=0 || any(demand)~=0)
+min_cost = min(cost(:));
+[r c] = find(cost == min_cost);
+y = min(supply(r),demand(c));
+[aloc,index] = max(y);
+rr = r(index);
+cc = c(index);
+X(rr,cc) = aloc;
+supply(rr) = supply(rr)-aloc;
+demand(cc) = demand(cc)-aloc;
+cost(rr,cc) = inf;
+end
+cost_cell = X.*Icost;
+final_cost = sum(cost_cell(:));
+disp(X);
+fprintf("Final Cost: %d", final_cost)
