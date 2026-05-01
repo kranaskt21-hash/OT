@@ -54,87 +54,91 @@ for s=1:50
 end
 % disp(s)
 ----------------------------------------------------------------------------------
-clc;
-clear;
+clc
+clear all
 
-M = 1000; % Large number
+%% MAX Problem using Big M
+M = 1e6;   % Large penalty
 
-% Max Z = 3x1 + 2x2 - M*a1 - M*a2
-% Variables: x1 x2 s1 a1 a2
+% Example:
+% Max Z = x1 + 2x2
+% Subject to:
+% x1 + x2 >= 10
+% x1 + 3x2 = 15
 
-C = [3 2 0 -M -M];
+c = [1 2 0 0 -M -M];  
+% [x1 x2 s1 s2 a1 a2]
 
-A = [1 1 -1 1 0;
-     2 1  0 0 1];
+A = [1 1 -1 0 1 0;
+    1 3  0 0 0 1];
 
-b = [4; 5];
+b = [10;15];
 
 m = size(A,1);
 n = size(A,2);
 
+%% Initial basic variables (artificial variables)
+bv_index = [5 6];  
+
 Y = [A b];
 
-% Initial basic variables → artificial variables
-bv_index = [4 5];
-
 for s = 1:50
-    Xb = Y(:, end);
-    Cb = C(bv_index);
-    z = Cb * Xb;
 
-    % Zj - Cj
-    ZjCj = Cb * Y(:,1:n) - C;
+    cb = c(bv_index);
+    Xb = Y(:,end);
 
-    Table = [ZjCj z; Y];
-    disp('Iteration Table:');
-    disp(Table)
+    z = cb * Xb;
 
-    % Check optimality
-    if all(ZjCj >= 0)
-        disp('Optimal Solution:');
-        
-        sol = zeros(1,n);
-        sol(bv_index) = Xb;
-        
-        disp(sol);
-        disp('Optimal Value:');
-        disp(z);
-        break;
-    else
-        [~, Ev] = min(ZjCj);
+    zjcj = cb * Y(:,1:n) - c;
 
-        if all(Y(:,Ev) <= 0)
-            disp('Unbounded');
-            break;
-        else
-            for j = 1:m
-                if Y(j,Ev) > 0
-                    ratio(j) = Xb(j) / Y(j,Ev);
-                else
-                    ratio(j) = inf;
-                end
-            end
-        end
+    Table = [zjcj z; Y]
 
-        [~, Lv] = min(ratio);
-        bv_index(Lv) = Ev;
+    % Optimality condition
+    if all(zjcj >= 0)
+        disp('Optimal solution achieved');
+        Xb
+        basic_variables = bv_index
+        fprintf("Optimal objective function value = %f\n", z);
+        break
     end
 
-    pivot = Y(Lv, Ev);
+    % Entering variable
+    [a, EV] = min(zjcj);
 
-    % Normalize pivot row
-    Y(Lv,:) = Y(Lv,:) / pivot;
+    % Unbounded check
+    if all(Y(:,EV) <= 0)
+        disp("Unbounded solution")
+        break
+    end
 
-    % Row operations
+    % Ratio test
+    ratio = inf(m,1);
+    for j = 1:m
+        if Y(j,EV) > 0
+            ratio(j) = Xb(j) / Y(j,EV);
+        end
+    end
+
+    [k, LV] = min(ratio);
+
+    % Update basis
+    bv_index(LV) = EV;
+
+    % Pivot
+    pivot = Y(LV,EV);
+    Y(LV,:) = Y(LV,:) / pivot;
+
     for i = 1:m
-        if i ~= Lv
-            Y(i,:) = Y(i,:) - Y(i,Ev) * Y(Lv,:);
+        if i ~= LV
+            Y(i,:) = Y(i,:) - Y(i,EV) * Y(LV,:);
         end
     end
 end
 
-
-
+% Check artificial variables
+if any(bv_index > (n - m))
+    disp('Artificial variables still in basis → infeasible solution');
+end
 
 ----------------------------------------------------------------------------------------
 % CODE FOR STEEPEST DESCENT METHOD
